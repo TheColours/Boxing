@@ -42,10 +42,10 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.25
+  m_TransitionDuration: 0
   m_TransitionOffset: 0
-  m_ExitTime: 0.82558143
-  m_HasExitTime: 1
+  m_ExitTime: 0
+  m_HasExitTime: 0
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
@@ -96,10 +96,10 @@ AnimatorStateTransition:
   m_TransitionOffset: 0
   m_ExitTime: 0
   m_HasExitTime: 0
-  m_HasFixedDuration: 1
+  m_HasFixedDuration: 0
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
-  m_CanTransitionToSelf: 1
+  m_CanTransitionToSelf: 0
 --- !u!1101 &-3552671247348915378
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -236,7 +236,7 @@ AnimatorController:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Controller 1
+  m_Name: Enemy
   serializedVersion: 5
   m_AnimatorParameters:
   - m_Name: State
@@ -354,9 +354,9 @@ AnimatorStateTransition:
   m_Mute: 0
   m_IsExit: 0
   serializedVersion: 3
-  m_TransitionDuration: 0.22832382
-  m_TransitionOffset: 0.99604005
-  m_ExitTime: 0.44835943
+  m_TransitionDuration: 0.24601126
+  m_TransitionOffset: 1.8785487
+  m_ExitTime: 0.84561473
   m_HasExitTime: 1
   m_HasFixedDuration: 1
   m_InterruptionSource: 0
@@ -484,7 +484,7 @@ AnimatorStateMachine:
     m_Position: {x: 90, y: 380, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4554959033699984236}
-    m_Position: {x: 170, y: 70, z: 0}
+    m_Position: {x: 220, y: 90, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 4595152750709057541}
     m_Position: {x: 340, y: 260, z: 0}
@@ -505,8 +505,8 @@ AnimatorStateMachine:
   m_StateMachineTransitions: {}
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: -110, y: 510, z: 0}
-  m_EntryPosition: {x: 40, y: 70, z: 0}
-  m_ExitPosition: {x: 800, y: 120, z: 0}
+  m_EntryPosition: {x: -10, y: 30, z: 0}
+  m_ExitPosition: {x: 800, y: 670, z: 0}
   m_ParentStateMachinePosition: {x: 800, y: 20, z: 0}
   m_DefaultState: {fileID: -3387409156820354809}
 --- !u!1102 &8368487383841417838
@@ -581,7 +581,7 @@ AnimatorStateTransition:
   m_TransitionOffset: 0
   m_ExitTime: 0.00000011647358
   m_HasExitTime: 0
-  m_HasFixedDuration: 1
+  m_HasFixedDuration: 0
   m_InterruptionSource: 0
   m_OrderedInterruption: 1
-  m_CanTransitionToSelf: 1
+  m_CanTransitionToSelf: 0

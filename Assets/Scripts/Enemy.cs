@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,110 +8,144 @@ public class Enemy : Character
     [SerializeField] private float detectionRadius = 12f;
     [SerializeField] private float stoppingDistance = 2f;
     [SerializeField] private float moveSpeed = 2.5f;
-    [SerializeField] private LayerMask playerLayer;
-    [SerializeField] private SphereCollider _rightHand;
-    [SerializeField] private float punchDelay = 1.0f;
-
-    private GameObject targetPlayer;
-    private bool isAttacking = false;
-    private bool canAttack = true;
+    [SerializeField] private Hand _rightHand;
+    public List<Character> PotentialTargets;
+    private Character _targetPlayer;
+    private bool _isHit;
     private bool _canMove;
+    private Coroutine _hitRecoveryCoroutine;
 
     private new void Start()
     {
         base.Start();
-        _rightHand.enabled = false;
-        InvokeRepeating(nameof(DetectPlayer), 0f, 0.5f);
+        _rightHand.EnablePunch(false);
+        InvokeRepeating(nameof(UpdateTarget), 0f, 0.5f);
+    }
+    public void SetMove()
+    {
+        _canMove = true;
     }
 
     private void Update()
     {
-        if (targetPlayer != null)
+        if (_targetPlayer == null)
         {
-            Vector3 direction = targetPlayer.transform.position - transform.position;
-            direction.y = 0;
-            float distance = direction.magnitude;
-
-            if (direction != Vector3.zero)
+            if (State != MovementState.Victory)
             {
-                Quaternion lookRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
+                State = MovementState.Victory;
+                _animator.SetInteger("State", (int)State);
             }
+            return;
+        }
+        if (_isHit) return;
+        Vector3 direction = _targetPlayer.transform.position - transform.position;
+        direction.y = 0f;
+        float distance = direction.magnitude;
 
-            // 👉 Chặn di chuyển nếu đang tấn công
-            if (!isAttacking && distance > stoppingDistance)
+        if (direction != Vector3.zero)
+        {
+            Quaternion lookRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
+        }
+        if (distance <= stoppingDistance)
+        {
+            if (State != MovementState.HeadPunch)
             {
-                direction.Normalize();
-                Vector3 movement = direction * moveSpeed;
-                _rigidbody.velocity = new Vector3(movement.x, _rigidbody.velocity.y, movement.z);
-                UpdateAnimation(movement);
-                Debug.Log("di chuyen");
-            }
-            else
-            {
-                _rigidbody.velocity = new Vector3(0, _rigidbody.velocity.y, 0);
-                UpdateAnimation(Vector3.zero);
-
-                // Nếu không di chuyển, và không đang đấm thì bắt đầu đấm
-                if (canAttack && !isAttacking)
-                {
-                    StartCoroutine(Punch());
-                }
+                _canMove = false;
+                State = MovementState.HeadPunch;
+                _animator.SetInteger("State", (int)State);
             }
         }
         else
         {
-            UpdateAnimation(Vector3.zero);
+            direction.Normalize();
+            Vector3 movement = direction * moveSpeed;
+            if (_canMove)
+            {
+                _rigidbody.velocity = new Vector3(movement.x, _rigidbody.velocity.y, movement.z);
+            }
+            UpdateAnimationByMove(movement);
         }
     }
-
-
-    private void DetectPlayer()
+    void OnTriggerEnter(Collider other)
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, playerLayer);
-        if (hits.Length > 0)
+        if (!other.CompareTag("Player") || !other.TryGetComponent(out Hand hand) ||
+        hand.Main.State != MovementState.HeadPunch)
+            return;
+        other.enabled = false;
+
+        HP -= 10;
+        _isHit = true;
+        _canMove = false;
+
+        if (HP > 0)
         {
-            targetPlayer = hits[0].gameObject;
+            State = MovementState.HeadHit;
+            _animator.SetInteger("State", (int)State);
+            if (_hitRecoveryCoroutine != null)
+            {
+                StopCoroutine(_hitRecoveryCoroutine);
+                AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+                _animator.Play(stateInfo.fullPathHash, 0, 0f);
+            }
+            _hitRecoveryCoroutine = StartCoroutine(Common.Delay(1.12f, () =>
+            {
+                _hitRecoveryCoroutine = null;
+                _isHit = false;
+            }));
+        }
+        else
+        {
+            if (_hitRecoveryCoroutine != null)
+            {
+                StopCoroutine(_hitRecoveryCoroutine);
+            }
+            State = MovementState.KnockedOut;
+            _animator.SetInteger("State", (int)State);
+            GameManager.Instance.CheckComplete();
         }
     }
 
-    private IEnumerator Punch()
+    private void UpdateTarget()
     {
-        isAttacking = true;
-        canAttack = false;
+        float closestDistance = Mathf.Infinity;
+        Character closestPlayer = null;
+        foreach (var player in PotentialTargets)
+        {
+            if (player == null || player.HP <= 0) continue;
 
-        // Chỉ set animation – animation sẽ tự gọi EnablePunch() qua event
-        State = MovementState.HeadPunch;
-        _animator.SetInteger("State", (int)State);
+            float distance = Vector3.Distance(transform.position, player.transform.position);
+            if (distance < detectionRadius && distance < closestDistance)
+            {
+                closestDistance = distance;
+                closestPlayer = player;
+            }
+        }
 
-        yield return new WaitForSeconds(1.9f * 2); // Cooldown giữa các đòn
-        canAttack = true;
-        isAttacking = false;
+        _targetPlayer = closestPlayer;
     }
-
-
-    public void EnablePunch()
+    private IEnumerator Test(float alpha, Action callback)
     {
-        _rightHand.enabled = true;
-        StartCoroutine(DisablePunchDelay());
+        yield return new WaitForSeconds(alpha);
+        callback.Invoke();
     }
+    public void EnablePunch() => _rightHand.EnablePunch(true);
 
-    private IEnumerator DisablePunchDelay()
-    {
-        yield return new WaitForSeconds(0.1f);
-        _rightHand.enabled = false;
-    }
+    public void DisablePunch() => _rightHand.EnablePunch(false);
 
-    public void UpdateAnimation(Vector3 movement)
+
+    private void UpdateAnimationByMove(Vector3 movement)
     {
+        if (_isHit) return;
         if (movement.magnitude > 0.1f)
         {
             State = MovementState.running;
         }
-        else if (!isAttacking)
+        else
         {
             State = MovementState.idle;
         }
+
         _animator.SetInteger("State", (int)State);
     }
 
@@ -118,6 +153,7 @@ public class Enemy : Character
     {
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
+
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, stoppingDistance);
     }
